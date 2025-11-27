@@ -433,6 +433,24 @@ function generateSchedule() {
               shiftInfo.appendChild(dayShift);
             }
 
+            // 短班 (僅假日)
+            if (daySchedule.short && (dayOfWeek === 0 || dayOfWeek === 6)) {
+              const shortShift = document.createElement("div");
+              shortShift.className = `editable-shift ${daySchedule.short.color}`;
+              const shiftTime = getShiftTime("short", adjustedHour, dayOfWeek);
+              const shiftHours = getShiftHours(
+                "short",
+                adjustedHour,
+                dayOfWeek
+              );
+              // 安全地使用 displayName，如果沒有就使用 id
+              const displayName =
+                daySchedule.short.displayName || daySchedule.short.id;
+              shortShift.textContent = `${displayName} ${shiftTime}(${shiftHours})`;
+              shortShift.setAttribute("data-date", dateString);
+              shortShift.setAttribute("data-shift-type", "short");
+              shiftInfo.appendChild(shortShift);
+            }
             // 晚班
             if (daySchedule.night) {
               const nightHours = getShiftHoursNumber(
@@ -461,25 +479,6 @@ function generateSchedule() {
                 nightShift.setAttribute("data-shift-type", "night");
                 shiftInfo.appendChild(nightShift);
               }
-            }
-
-            // 短班 (僅假日)
-            if (daySchedule.short && (dayOfWeek === 0 || dayOfWeek === 6)) {
-              const shortShift = document.createElement("div");
-              shortShift.className = `editable-shift ${daySchedule.short.color}`;
-              const shiftTime = getShiftTime("short", adjustedHour, dayOfWeek);
-              const shiftHours = getShiftHours(
-                "short",
-                adjustedHour,
-                dayOfWeek
-              );
-              // 安全地使用 displayName，如果沒有就使用 id
-              const displayName =
-                daySchedule.short.displayName || daySchedule.short.id;
-              shortShift.textContent = `${displayName} ${shiftTime}(${shiftHours})`;
-              shortShift.setAttribute("data-date", dateString);
-              shortShift.setAttribute("data-shift-type", "short");
-              shiftInfo.appendChild(shortShift);
             }
           } else {
             // 如果沒有排班資料，顯示空白
@@ -775,6 +774,13 @@ function scheduleNightShift(dateString, dayOfWeek, isHoliday) {
 
 // 排短班
 function scheduleShortShift(dateString) {
+  const currentDate = new Date(dateString);
+  const dayOfWeek = currentDate.getDay();
+  const isHoliday = dayOfWeek === 0 || dayOfWeek === 6;
+
+  // 只在假日排短班
+  if (!isHoliday) return;
+
   // 過濾可上短班的員工
   let availableEmployees = employees.filter((emp) => {
     // 正職不能上短班
@@ -789,10 +795,18 @@ function scheduleShortShift(dateString) {
     return true;
   });
 
+  console.log(
+    "可上短班的員工:",
+    availableEmployees.map((e) => e.id),
+    "在",
+    dateString
+  );
+
   // 優先排兼職C (妘)
   const employeeC = availableEmployees.find((emp) => emp.id === "C");
   if (employeeC) {
     scheduleData[dateString].short = employeeC;
+    console.log("優先排妘短班在:", dateString);
     return;
   }
 
@@ -800,6 +814,7 @@ function scheduleShortShift(dateString) {
   const employeeS = availableEmployees.find((emp) => emp.id === "S");
   if (employeeS) {
     scheduleData[dateString].short = employeeS;
+    console.log("其次排莎短班在:", dateString);
     return;
   }
 
@@ -808,6 +823,14 @@ function scheduleShortShift(dateString) {
     // 隨機選擇一個員工
     const randomIndex = Math.floor(Math.random() * availableEmployees.length);
     scheduleData[dateString].short = availableEmployees[randomIndex];
+    console.log(
+      "隨機排短班:",
+      availableEmployees[randomIndex].id,
+      "在",
+      dateString
+    );
+  } else {
+    console.log("沒有可用的短班員工在:", dateString);
   }
 }
 
