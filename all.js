@@ -409,42 +409,52 @@ function generateSchedule() {
             if (daySchedule.day) {
               const dayShift = document.createElement("div");
               dayShift.className = `editable-shift ${daySchedule.day.color}`;
-              dayShift.textContent = `${daySchedule.day.id} ${getShiftTime(
-                "day",
-                adjustedHour,
-                dayOfWeek
-              )}(${getShiftHours("day", adjustedHour, dayOfWeek)})`;
+              const shiftTime = getShiftTime("day", adjustedHour, dayOfWeek);
+              const shiftHours = getShiftHours("day", adjustedHour, dayOfWeek);
+              dayShift.textContent = `${daySchedule.day.id} ${shiftTime}(${shiftHours})`;
               dayShift.setAttribute("data-date", dateString);
               dayShift.setAttribute("data-shift-type", "day");
               shiftInfo.appendChild(dayShift);
             }
 
             // 晚班
-            if (
-              daySchedule.night &&
-              (!adjustedHour || adjustedHour.type !== "early-close")
-            ) {
-              const nightShift = document.createElement("div");
-              nightShift.className = `editable-shift ${daySchedule.night.color}`;
-              nightShift.textContent = `${daySchedule.night.id} ${getShiftTime(
+            if (daySchedule.night) {
+              const nightHours = getShiftHoursNumber(
                 "night",
                 adjustedHour,
                 dayOfWeek
-              )}(${getShiftHours("night", adjustedHour, dayOfWeek)})`;
-              nightShift.setAttribute("data-date", dateString);
-              nightShift.setAttribute("data-shift-type", "night");
-              shiftInfo.appendChild(nightShift);
+              );
+              if (nightHours > 0) {
+                const nightShift = document.createElement("div");
+                nightShift.className = `editable-shift ${daySchedule.night.color}`;
+                const shiftTime = getShiftTime(
+                  "night",
+                  adjustedHour,
+                  dayOfWeek
+                );
+                const shiftHours = getShiftHours(
+                  "night",
+                  adjustedHour,
+                  dayOfWeek
+                );
+                nightShift.textContent = `${daySchedule.night.id} ${shiftTime}(${shiftHours})`;
+                nightShift.setAttribute("data-date", dateString);
+                nightShift.setAttribute("data-shift-type", "night");
+                shiftInfo.appendChild(nightShift);
+              }
             }
 
             // 短班 (僅假日)
             if (daySchedule.short && (dayOfWeek === 0 || dayOfWeek === 6)) {
               const shortShift = document.createElement("div");
               shortShift.className = `editable-shift ${daySchedule.short.color}`;
-              shortShift.textContent = `${daySchedule.short.id} ${getShiftTime(
+              const shiftTime = getShiftTime("short", adjustedHour, dayOfWeek);
+              const shiftHours = getShiftHours(
                 "short",
                 adjustedHour,
                 dayOfWeek
-              )}(${getShiftHours("short", adjustedHour, dayOfWeek)})`;
+              );
+              shortShift.textContent = `${daySchedule.short.id} ${shiftTime}(${shiftHours})`;
               shortShift.setAttribute("data-date", dateString);
               shortShift.setAttribute("data-shift-type", "short");
               shiftInfo.appendChild(shortShift);
@@ -492,14 +502,26 @@ function generateSchedule() {
 function getShiftTime(shiftType, adjustedHour, dayOfWeek) {
   const isHoliday = dayOfWeek === 0 || dayOfWeek === 6;
 
+  // 如果有調整營業時段
   if (adjustedHour) {
     if (shiftType === "day") {
       if (adjustedHour.dayShift) return adjustedHour.dayShift;
+      if (adjustedHour.type === "late-open") {
+        return "13:00-18:30"; // 延後開門的預設時間
+      }
     } else if (shiftType === "short") {
       if (adjustedHour.shortShift) return adjustedHour.shortShift;
+      if (adjustedHour.type === "late-open") {
+        return "13:00-16:00"; // 延後開門的短班時間
+      }
+    } else if (shiftType === "night") {
+      if (adjustedHour.type === "early-close") {
+        return "不需排班"; // 提早打烊
+      }
     }
   }
 
+  // 沒有調整營業時段或沒有指定時間，使用預設時間
   if (shiftType === "day") {
     return isHoliday ? "09:50-17:50" : "10:30-18:30";
   } else if (shiftType === "night") {
@@ -511,26 +533,54 @@ function getShiftTime(shiftType, adjustedHour, dayOfWeek) {
   return "";
 }
 
-// 獲取班別時數
+// 獲取班別時數 (顯示用)
 function getShiftHours(shiftType, adjustedHour, dayOfWeek) {
+  const hours = getShiftHoursNumber(shiftType, adjustedHour, dayOfWeek);
+  const currentDate = new Date(currentYear, currentMonth, dayOfWeek);
+  const dateString = formatDate(currentDate);
+  const isNationalHoliday = holidays.some((h) => h.date === dateString);
+
+  // 如果是國定假日，時數加倍
+  if (isNationalHoliday && hours > 0) {
+    return `${hours}*2`;
+  }
+
+  return hours > 0 ? hours.toString() : "0";
+}
+
+// 獲取班別時數 (數字)
+function getShiftHoursNumber(shiftType, adjustedHour, dayOfWeek) {
   const isHoliday = dayOfWeek === 0 || dayOfWeek === 6;
-  const isNationalHoliday = holidays.some((h) => {
-    const holidayDate = new Date(h.date);
-    return (
-      holidayDate.getDate() ===
-      new Date(currentYear, currentMonth, dayOfWeek).getDate()
-    );
-  });
 
   let hours = 0;
 
+  // 如果有調整營業時段
   if (adjustedHour) {
-    if (shiftType === "day" && adjustedHour.dayHours) {
-      hours = adjustedHour.dayHours;
-    } else if (shiftType === "short" && adjustedHour.shortHours) {
-      hours = adjustedHour.shortHours;
+    if (shiftType === "day") {
+      if (adjustedHour.dayHours !== undefined) {
+        hours = adjustedHour.dayHours;
+      } else if (adjustedHour.type === "late-open") {
+        // 延後開門但沒有指定時數，使用預設值
+        hours = isHoliday ? 8 : 8;
+      } else {
+        hours = isHoliday ? 8 : 8;
+      }
+    } else if (shiftType === "night") {
+      // 晚班不受延後開門影響，但受提早打烊影響
+      if (adjustedHour.type === "early-close") {
+        hours = 0; // 提早打烊不需要晚班
+      } else {
+        hours = isHoliday ? 8 : 6;
+      }
+    } else if (shiftType === "short") {
+      if (adjustedHour.shortHours !== undefined) {
+        hours = adjustedHour.shortHours;
+      } else {
+        hours = 4; // 短班預設時數
+      }
     }
   } else {
+    // 沒有調整營業時段，使用預設時數
     if (shiftType === "day") {
       hours = isHoliday ? 8 : 8;
     } else if (shiftType === "night") {
@@ -538,11 +588,6 @@ function getShiftHours(shiftType, adjustedHour, dayOfWeek) {
     } else if (shiftType === "short") {
       hours = 4;
     }
-  }
-
-  // 如果是國定假日，時數加倍
-  if (isNationalHoliday) {
-    return `${hours}*2`;
   }
 
   return hours;
@@ -587,7 +632,10 @@ function autoGenerateSchedule() {
 
     // 排晚班 (如果不是提早打烊)
     if (!adjustedHour || adjustedHour.type !== "early-close") {
-      scheduleNightShift(dateString, dayOfWeek, isHoliday);
+      const nightHours = getShiftHoursNumber("night", adjustedHour, dayOfWeek);
+      if (nightHours > 0) {
+        scheduleNightShift(dateString, dayOfWeek, isHoliday);
+      }
     }
 
     // 如果是假日，排短班
@@ -1043,65 +1091,26 @@ function updateStats() {
     const row = document.createElement("tr");
 
     row.innerHTML = `
-                    <td>${empStats.name}</td>
-                    <td>${
-                      empStats.type === "full-time" ? empStats.workDays : "-"
-                    }</td>
-                    <td>${
-                      empStats.type === "full-time" ? empStats.offDays : "-"
-                    }</td>
-                    <td>${
-                      empStats.type === "part-time" ? empStats.shiftCount : "-"
-                    }</td>
-                    <td>${
-                      empStats.type === "part-time" ? empStats.totalHours : "-"
-                    }</td>
-                    <td>${
-                      empStats.type === "part-time"
-                        ? empStats.holidayHours
-                        : "-"
-                    }</td>
-                `;
+                <td>${empStats.name}</td>
+                <td>${
+                  empStats.type === "full-time" ? empStats.workDays : "-"
+                }</td>
+                <td>${
+                  empStats.type === "full-time" ? empStats.offDays : "-"
+                }</td>
+                <td>${
+                  empStats.type === "part-time" ? empStats.shiftCount : "-"
+                }</td>
+                <td>${
+                  empStats.type === "part-time" ? empStats.totalHours : "-"
+                }</td>
+                <td>${
+                  empStats.type === "part-time" ? empStats.holidayHours : "-"
+                }</td>
+            `;
 
     statsBody.appendChild(row);
   }
-}
-
-// 獲取班別時數 (數字)
-function getShiftHoursNumber(shiftType, adjustedHour, dayOfWeek) {
-  const isHoliday = dayOfWeek === 0 || dayOfWeek === 6;
-  const isNationalHoliday = holidays.some((h) => {
-    const holidayDate = new Date(h.date);
-    return (
-      holidayDate.getDate() ===
-      new Date(currentYear, currentMonth, dayOfWeek).getDate()
-    );
-  });
-
-  let hours = 0;
-
-  if (adjustedHour) {
-    if (shiftType === "day" && adjustedHour.dayHours) {
-      hours = adjustedHour.dayHours;
-    } else if (shiftType === "short" && adjustedHour.shortHours) {
-      hours = adjustedHour.shortHours;
-    }
-  } else {
-    if (shiftType === "day") {
-      hours = isHoliday ? 8 : 8;
-    } else if (shiftType === "night") {
-      hours = isHoliday ? 8 : 6;
-    } else if (shiftType === "short") {
-      hours = 4;
-    }
-  }
-
-  // 如果是國定假日，時數加倍
-  if (isNationalHoliday) {
-    hours *= 2;
-  }
-
-  return hours;
 }
 
 // 格式化日期為 YYYY-MM-DD
@@ -1122,156 +1131,156 @@ function renderEmployeeRules() {
     employeeCard.className = "card mb-3";
 
     employeeCard.innerHTML = `
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">${employee.name} (${employee.id})</h5>
-                        <button type="button" class="btn btn-sm btn-danger delete-employee" data-index="${index}">刪除</button>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">員工代號</label>
-                                    <input type="text" class="form-control employee-id" value="${
-                                      employee.id
-                                    }" data-index="${index}">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">員工姓名</label>
-                                    <input type="text" class="form-control employee-name" value="${
-                                      employee.name
-                                    }" data-index="${index}">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">員工類型</label>
-                                    <select class="form-select employee-type" data-index="${index}">
-                                        <option value="full-time" ${
-                                          employee.type === "full-time"
-                                            ? "selected"
-                                            : ""
-                                        }>正職</option>
-                                        <option value="part-time" ${
-                                          employee.type === "part-time"
-                                            ? "selected"
-                                            : ""
-                                        }>兼職</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">偏好班別</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input preferred-shift" type="checkbox" value="day" ${
-                                              employee.preferredShifts.includes(
-                                                "day"
-                                              )
-                                                ? "checked"
-                                                : ""
-                                            } data-index="${index}">
-                                            <label class="form-check-label">白天班</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input preferred-shift" type="checkbox" value="night" ${
-                                              employee.preferredShifts.includes(
-                                                "night"
-                                              )
-                                                ? "checked"
-                                                : ""
-                                            } data-index="${index}">
-                                            <label class="form-check-label">晚班</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input preferred-shift" type="checkbox" value="short" ${
-                                              employee.preferredShifts.includes(
-                                                "short"
-                                              )
-                                                ? "checked"
-                                                : ""
-                                            } data-index="${index}">
-                                            <label class="form-check-label">短班</label>
-                                        </div>
-                                    </div>
-                                </div>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">${employee.name} (${employee.id})</h5>
+                    <button type="button" class="btn btn-sm btn-danger delete-employee" data-index="${index}">刪除</button>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">員工代號</label>
+                                <input type="text" class="form-control employee-id" value="${
+                                  employee.id
+                                }" data-index="${index}">
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">固定休息日</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input fixed-day-off" type="checkbox" value="1" ${
-                                              employee.fixedDaysOff.includes(1)
-                                                ? "checked"
-                                                : ""
-                                            } data-index="${index}">
-                                            <label class="form-check-label">週一</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input fixed-day-off" type="checkbox" value="2" ${
-                                              employee.fixedDaysOff.includes(2)
-                                                ? "checked"
-                                                : ""
-                                            } data-index="${index}">
-                                            <label class="form-check-label">週二</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input fixed-day-off" type="checkbox" value="3" ${
-                                              employee.fixedDaysOff.includes(3)
-                                                ? "checked"
-                                                : ""
-                                            } data-index="${index}">
-                                            <label class="form-check-label">週三</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input fixed-day-off" type="checkbox" value="4" ${
-                                              employee.fixedDaysOff.includes(4)
-                                                ? "checked"
-                                                : ""
-                                            } data-index="${index}">
-                                            <label class="form-check-label">週四</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input fixed-day-off" type="checkbox" value="5" ${
-                                              employee.fixedDaysOff.includes(5)
-                                                ? "checked"
-                                                : ""
-                                            } data-index="${index}">
-                                            <label class="form-check-label">週五</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input fixed-day-off" type="checkbox" value="6" ${
-                                              employee.fixedDaysOff.includes(6)
-                                                ? "checked"
-                                                : ""
-                                            } data-index="${index}">
-                                            <label class="form-check-label">週六</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input fixed-day-off" type="checkbox" value="0" ${
-                                              employee.fixedDaysOff.includes(0)
-                                                ? "checked"
-                                                : ""
-                                            } data-index="${index}">
-                                            <label class="form-check-label">週日</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">不可上班日期 (YYYY-MM-DD，多個日期用逗號分隔)</label>
-                                    <input type="text" class="form-control unavailable-dates" value="${employee.unavailableDates.join(
-                                      ", "
-                                    )}" data-index="${index}">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">特定日期可上班 (YYYY-MM-DD，多個日期用逗號分隔)</label>
-                                    <input type="text" class="form-control available-dates" value="${
-                                      employee.availableDates
-                                        ? employee.availableDates.join(", ")
+                            <div class="mb-3">
+                                <label class="form-label">員工姓名</label>
+                                <input type="text" class="form-control employee-name" value="${
+                                  employee.name
+                                }" data-index="${index}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">員工類型</label>
+                                <select class="form-select employee-type" data-index="${index}">
+                                    <option value="full-time" ${
+                                      employee.type === "full-time"
+                                        ? "selected"
                                         : ""
-                                    }" data-index="${index}">
+                                    }>正職</option>
+                                    <option value="part-time" ${
+                                      employee.type === "part-time"
+                                        ? "selected"
+                                        : ""
+                                    }>兼職</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">偏好班別</label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input preferred-shift" type="checkbox" value="day" ${
+                                          employee.preferredShifts.includes(
+                                            "day"
+                                          )
+                                            ? "checked"
+                                            : ""
+                                        } data-index="${index}">
+                                        <label class="form-check-label">白天班</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input preferred-shift" type="checkbox" value="night" ${
+                                          employee.preferredShifts.includes(
+                                            "night"
+                                          )
+                                            ? "checked"
+                                            : ""
+                                        } data-index="${index}">
+                                        <label class="form-check-label">晚班</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input preferred-shift" type="checkbox" value="short" ${
+                                          employee.preferredShifts.includes(
+                                            "short"
+                                          )
+                                            ? "checked"
+                                            : ""
+                                        } data-index="${index}">
+                                        <label class="form-check-label">短班</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">固定休息日</label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input fixed-day-off" type="checkbox" value="1" ${
+                                          employee.fixedDaysOff.includes(1)
+                                            ? "checked"
+                                            : ""
+                                        } data-index="${index}">
+                                        <label class="form-check-label">週一</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input fixed-day-off" type="checkbox" value="2" ${
+                                          employee.fixedDaysOff.includes(2)
+                                            ? "checked"
+                                            : ""
+                                        } data-index="${index}">
+                                        <label class="form-check-label">週二</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input fixed-day-off" type="checkbox" value="3" ${
+                                          employee.fixedDaysOff.includes(3)
+                                            ? "checked"
+                                            : ""
+                                        } data-index="${index}">
+                                        <label class="form-check-label">週三</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input fixed-day-off" type="checkbox" value="4" ${
+                                          employee.fixedDaysOff.includes(4)
+                                            ? "checked"
+                                            : ""
+                                        } data-index="${index}">
+                                        <label class="form-check-label">週四</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input fixed-day-off" type="checkbox" value="5" ${
+                                          employee.fixedDaysOff.includes(5)
+                                            ? "checked"
+                                            : ""
+                                        } data-index="${index}">
+                                        <label class="form-check-label">週五</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input fixed-day-off" type="checkbox" value="6" ${
+                                          employee.fixedDaysOff.includes(6)
+                                            ? "checked"
+                                            : ""
+                                        } data-index="${index}">
+                                        <label class="form-check-label">週六</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input fixed-day-off" type="checkbox" value="0" ${
+                                          employee.fixedDaysOff.includes(0)
+                                            ? "checked"
+                                            : ""
+                                        } data-index="${index}">
+                                        <label class="form-check-label">週日</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">不可上班日期 (YYYY-MM-DD，多個日期用逗號分隔)</label>
+                                <input type="text" class="form-control unavailable-dates" value="${employee.unavailableDates.join(
+                                  ", "
+                                )}" data-index="${index}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">特定日期可上班 (YYYY-MM-DD，多個日期用逗號分隔)</label>
+                                <input type="text" class="form-control available-dates" value="${
+                                  employee.availableDates
+                                    ? employee.availableDates.join(", ")
+                                    : ""
+                                }" data-index="${index}">
+                            </div>
+                        </div>
                     </div>
-                `;
+                </div>
+            `;
 
     employeeRulesContainer.appendChild(employeeCard);
   });
@@ -1391,14 +1400,14 @@ function renderHolidays() {
     holidayItem.className = "input-group mb-2";
 
     holidayItem.innerHTML = `
-                    <input type="date" class="form-control holiday-date" value="${
-                      holiday.date
-                    }">
-                    <input type="text" class="form-control holiday-name" value="${
-                      holiday.name || ""
-                    }" placeholder="假日名稱">
-                    <button class="btn btn-outline-danger delete-holiday" type="button" data-index="${index}">刪除</button>
-                `;
+                <input type="date" class="form-control holiday-date" value="${
+                  holiday.date
+                }">
+                <input type="text" class="form-control holiday-name" value="${
+                  holiday.name || ""
+                }" placeholder="假日名稱">
+                <button class="btn btn-outline-danger delete-holiday" type="button" data-index="${index}">刪除</button>
+            `;
 
     holidaysContainer.appendChild(holidayItem);
   });
@@ -1414,14 +1423,14 @@ function renderClosedDays() {
     closedDayItem.className = "input-group mb-2";
 
     closedDayItem.innerHTML = `
-                    <input type="date" class="form-control closed-date" value="${
-                      closedDay.date
-                    }">
-                    <input type="text" class="form-control closed-reason" value="${
-                      closedDay.reason || ""
-                    }" placeholder="公休原因">
-                    <button class="btn btn-outline-danger delete-closed-day" type="button" data-index="${index}">刪除</button>
-                `;
+                <input type="date" class="form-control closed-date" value="${
+                  closedDay.date
+                }">
+                <input type="text" class="form-control closed-reason" value="${
+                  closedDay.reason || ""
+                }" placeholder="公休原因">
+                <button class="btn btn-outline-danger delete-closed-day" type="button" data-index="${index}">刪除</button>
+            `;
 
     closedDaysContainer.appendChild(closedDayItem);
   });
@@ -1439,73 +1448,73 @@ function renderAdjustedHours() {
     adjustedItem.className = "card mb-3";
 
     adjustedItem.innerHTML = `
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">日期</label>
-                                    <input type="date" class="form-control adjusted-date" value="${
-                                      adjusted.date
-                                    }">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">調整類型</label>
-                                    <select class="form-select adjusted-type">
-                                        <option value="early-close" ${
-                                          adjusted.type === "early-close"
-                                            ? "selected"
-                                            : ""
-                                        }>提早打烊</option>
-                                        <option value="late-open" ${
-                                          adjusted.type === "late-open"
-                                            ? "selected"
-                                            : ""
-                                        }>延後開門</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">描述</label>
-                                    <input type="text" class="form-control adjusted-description" value="${
-                                      adjusted.description || ""
-                                    }">
-                                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">日期</label>
+                                <input type="date" class="form-control adjusted-date" value="${
+                                  adjusted.date
+                                }">
                             </div>
                         </div>
-                        <div class="row adjusted-details" style="${
-                          adjusted.type === "late-open" ? "" : "display: none;"
-                        }">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">白天班時間</label>
-                                    <input type="text" class="form-control adjusted-day-shift" value="${
-                                      adjusted.dayShift || ""
-                                    }" placeholder="例如: 13:00-18:30">
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="mb-3">
-                                    <label class="form-label">白天班時數</label>
-                                    <input type="number" class="form-control adjusted-day-hours" value="${
-                                      adjusted.dayHours || ""
-                                    }">
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="mb-3">
-                                    <label class="form-label">短班時數</label>
-                                    <input type="number" class="form-control adjusted-short-hours" value="${
-                                      adjusted.shortHours || ""
-                                    }">
-                                </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">調整類型</label>
+                                <select class="form-select adjusted-type">
+                                    <option value="early-close" ${
+                                      adjusted.type === "early-close"
+                                        ? "selected"
+                                        : ""
+                                    }>提早打烊</option>
+                                    <option value="late-open" ${
+                                      adjusted.type === "late-open"
+                                        ? "selected"
+                                        : ""
+                                    }>延後開門</option>
+                                </select>
                             </div>
                         </div>
-                        <button class="btn btn-outline-danger delete-adjusted-hours" data-index="${index}">刪除</button>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">描述</label>
+                                <input type="text" class="form-control adjusted-description" value="${
+                                  adjusted.description || ""
+                                }">
+                            </div>
+                        </div>
                     </div>
-                `;
+                    <div class="row adjusted-details" style="${
+                      adjusted.type === "late-open" ? "" : "display: none;"
+                    }">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">白天班時間</label>
+                                <input type="text" class="form-control adjusted-day-shift" value="${
+                                  adjusted.dayShift || ""
+                                }" placeholder="例如: 13:00-18:30">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">白天班時數</label>
+                                <input type="number" class="form-control adjusted-day-hours" value="${
+                                  adjusted.dayHours || ""
+                                }">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">短班時數</label>
+                                <input type="number" class="form-control adjusted-short-hours" value="${
+                                  adjusted.shortHours || ""
+                                }">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline-danger delete-adjusted-hours" data-index="${index}">刪除</button>
+                </div>
+            `;
 
     adjustedHoursContainer.appendChild(adjustedItem);
   });
@@ -1641,19 +1650,16 @@ function renderHistory() {
     const dateString =
       date.toLocaleDateString("zh-TW") +
       " " +
-      date.toLocaleTimeString("zh-TW", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      date.toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
 
     row.innerHTML = `
-                    <td>${dateString}</td>
-                    <td>${entry.year}年${entry.month}月</td>
-                    <td>系統</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary load-history" data-date="${entry.date}">載入</button>
-                    </td>
-                `;
+                <td>${dateString}</td>
+                <td>${entry.year}年${entry.month}月</td>
+                <td>系統</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary load-history" data-date="${entry.date}">載入</button>
+                </td>
+            `;
 
     historyBody.appendChild(row);
   });
