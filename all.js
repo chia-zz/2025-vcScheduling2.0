@@ -795,18 +795,10 @@ function scheduleShortShift(dateString) {
     return true;
   });
 
-  console.log(
-    "可上短班的員工:",
-    availableEmployees.map((e) => e.id),
-    "在",
-    dateString
-  );
-
   // 優先排兼職C (妘)
   const employeeC = availableEmployees.find((emp) => emp.id === "C");
   if (employeeC) {
     scheduleData[dateString].short = employeeC;
-    console.log("優先排妘短班在:", dateString);
     return;
   }
 
@@ -814,7 +806,6 @@ function scheduleShortShift(dateString) {
   const employeeS = availableEmployees.find((emp) => emp.id === "S");
   if (employeeS) {
     scheduleData[dateString].short = employeeS;
-    console.log("其次排莎短班在:", dateString);
     return;
   }
 
@@ -823,14 +814,6 @@ function scheduleShortShift(dateString) {
     // 隨機選擇一個員工
     const randomIndex = Math.floor(Math.random() * availableEmployees.length);
     scheduleData[dateString].short = availableEmployees[randomIndex];
-    console.log(
-      "隨機排短班:",
-      availableEmployees[randomIndex].id,
-      "在",
-      dateString
-    );
-  } else {
-    console.log("沒有可用的短班員工在:", dateString);
   }
 }
 
