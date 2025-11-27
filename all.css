@@ -1,0 +1,150 @@
+:root {
+  --primary-color: #4a6fa5;
+  --holiday-bg: #ececec;
+  --holiday-red: #ff6565;
+  --closed-bg: #bebebe;
+  --employee-a: #ffc0cb;
+  --employee-b: #ace9ac;
+  --employee-c: #f4dd6d;
+  --employee-d: #4db3f3;
+  --employee-e: #b9aaf5;
+  --employee-f: #ffc080;
+}
+
+body {
+  font-family: "Microsoft JhengHei", Arial, sans-serif;
+  background-color: #f8f9fa;
+}
+
+.navbar {
+  background-color: var(--primary-color) !important;
+}
+
+.navbar-brand img {
+  height: 40px;
+}
+
+.nav-link {
+  color: white !important;
+}
+
+.nav-link.active {
+  font-weight: bold;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 5px;
+}
+
+.tab-content {
+  background-color: white;
+  border-radius: 0 0 0.375rem 0.375rem;
+  border: 1px solid #dee2e6;
+  border-top: none;
+  padding: 20px;
+  min-height: 500px;
+}
+
+.calendar-header {
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: bold;
+}
+
+.calendar-cell {
+  height: 120px;
+  border: 1px solid #dee2e6;
+  padding: 5px;
+  position: relative;
+}
+
+.calendar-cell.holiday {
+  background-color: var(--holiday-bg);
+}
+
+.calendar-cell.closed {
+  background-color: var(--closed-bg);
+}
+
+.calendar-cell.holiday-red {
+  background-color: var(--holiday-red);
+}
+
+.date-number {
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.shift-info {
+  font-size: 0.85em;
+  margin-top: 5px;
+}
+
+.employee-a {
+  background-color: var(--employee-a);
+}
+.employee-b {
+  background-color: var(--employee-b);
+}
+.employee-c {
+  background-color: var(--employee-c);
+}
+.employee-d {
+  background-color: var(--employee-d);
+}
+.employee-e {
+  background-color: var(--employee-e);
+}
+.employee-f {
+  background-color: var(--employee-f);
+}
+
+.warning {
+  background-color: #fff3cd !important;
+  border-color: #ffeaa7 !important;
+}
+
+.stats-table th,
+.stats-table td {
+  padding: 8px;
+  text-align: center;
+}
+
+.editable-shift {
+  cursor: pointer;
+}
+
+.editable-shift:hover {
+  opacity: 0.8;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-outline-primary {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .calendar-cell {
+    height: 80px;
+  }
+
+  .shift-info {
+    font-size: 0.7em;
+  }
+
+  .btn-group {
+    flex-wrap: wrap;
+  }
+
+  .btn-group .btn {
+    margin-bottom: 5px;
+  }
+}

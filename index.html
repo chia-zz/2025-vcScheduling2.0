@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>排班管理系統2.0</title>
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgujwNAXjN1Xg9K18wNPmKb3jO79g7Ap2Jdn73wQ3nnv0adZVO-LgjHQj31sGT9yg5Iguw4K8E9Thyvde2cIqRI-UxPuVk7H5nb4E4ETbqOYidsLvsO7rID3nIdtw6XRZ7SM_NwsbbbXvQ/s800/fruit_coffee.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgujwNAXjN1Xg9K18wNPmKb3jO79g7Ap2Jdn73wQ3nnv0adZVO-LgjHQj31sGT9yg5Iguw4K8E9Thyvde2cIqRI-UxPuVk7H5nb4E4ETbqOYidsLvsO7rID3nIdtw6XRZ7SM_NwsbbbXvQ/s800/fruit_coffee.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgujwNAXjN1Xg9K18wNPmKb3jO79g7Ap2Jdn73wQ3nnv0adZVO-LgjHQj31sGT9yg5Iguw4K8E9Thyvde2cIqRI-UxPuVk7H5nb4E4ETbqOYidsLvsO7rID3nIdtw6XRZ7SM_NwsbbbXvQ/s800/fruit_coffee.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgujwNAXjN1Xg9K18wNPmKb3jO79g7Ap2Jdn73wQ3nnv0adZVO-LgjHQj31sGT9yg5Iguw4K8E9Thyvde2cIqRI-UxPuVk7H5nb4E4ETbqOYidsLvsO7rID3nIdtw6XRZ7SM_NwsbbbXvQ/s800/fruit_coffee.png"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="all.css" />
+  </head>
+  <body>
+    <!-- 頂部導航列 -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">
+          <img
+            src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEg2KMKU0W838JuLodAxZSjR7cEBuXVWKWDE9MLcfngBCoaPq4SMeAjSwR6dWwySB46C9CZ22hjwm484hQ5llwJGyAkhIsXS-5Ucd1RO9tm56WjfOh-8_pwYx2MLONkKVSmaz4RZVW5fkU/s800/syokuji8_coffeetime.png"
+            alt="排班系統Logo"
+          />
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a
+                class="nav-link active"
+                data-bs-toggle="tab"
+                href="#schedule-tab"
+                >📋 排班表</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-bs-toggle="tab" href="#rules-tab"
+                >⚙️ 規則設定</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-bs-toggle="tab" href="#special-tab"
+                >🎉 特殊日期</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-bs-toggle="tab" href="#history-tab"
+                >📚 歷史紀錄</a
+              >
+            </li>
+          </ul>
+          <div class="d-flex flex-wrap">
+            <button class="btn btn-outline-light me-2 mb-2" id="auto-generate">
+              🤖 自動生成
+            </button>
+            <button
+              class="btn btn-outline-light me-2 mb-2"
+              id="validate-schedule"
+            >
+              ✓ 驗證班表
+            </button>
+            <button
+              class="btn btn-outline-light me-2 mb-2"
+              id="check-continuous"
+            >
+              🔍 檢查連續上班
+            </button>
+            <button class="btn btn-outline-light me-2 mb-2" id="export-image">
+              📸 匯出月曆圖
+            </button>
+            <button class="btn btn-outline-light me-2 mb-2" id="save-schedule">
+              💾 儲存
+            </button>
+            <button class="btn btn-outline-light mb-2" id="load-schedule">
+              📂 載入
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 主要內容區域 -->
+    <div class="container-fluid mt-3">
+      <div class="tab-content">
+        <!-- 排班表分頁 -->
+        <div class="tab-pane fade show active" id="schedule-tab">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 id="schedule-title">2025年11月排班表</h3>
+            <div>
+              <select
+                class="form-select d-inline-block w-auto"
+                id="month-select"
+              >
+                <option value="10">11月</option>
+                <!-- 其他月份選項會由JS動態生成 -->
+              </select>
+              <select
+                class="form-select d-inline-block w-auto"
+                id="year-select"
+              >
+                <option value="2025">2025年</option>
+                <!-- 其他年份選項會由JS動態生成 -->
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-bordered text-center" id="schedule-table">
+              <!-- 月曆表格會由JS動態生成 -->
+            </table>
+          </div>
+
+          <div class="mt-4">
+            <h4>統計資訊</h4>
+            <div class="table-responsive">
+              <table class="table table-bordered stats-table">
+                <thead>
+                  <tr>
+                    <th>員工</th>
+                    <th>工作天數</th>
+                    <th>休假天數</th>
+                    <th>班次數</th>
+                    <th>總時數</th>
+                    <th>國定時數</th>
+                  </tr>
+                </thead>
+                <tbody id="stats-body">
+                  <!-- 統計資料會由JS動態生成 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 規則設定分頁 -->
+        <div class="tab-pane fade" id="rules-tab">
+          <h3>員工規則設定</h3>
+          <div id="employee-rules">
+            <!-- 員工規則設定表單會由JS動態生成 -->
+          </div>
+          <button class="btn btn-primary mt-3" id="add-employee">
+            新增員工
+          </button>
+          <button class="btn btn-success mt-3 ms-2" id="save-rules">
+            儲存規則
+          </button>
+        </div>
+
+        <!-- 特殊日期分頁 -->
+        <div class="tab-pane fade" id="special-tab">
+          <h3>特殊日期設定</h3>
+          <div class="mb-3">
+            <h5>國定假日</h5>
+            <div id="holidays-container">
+              <!-- 國定假日設定會由JS動態生成 -->
+            </div>
+            <button
+              class="btn btn-sm btn-outline-primary mt-2"
+              id="add-holiday"
+            >
+              新增國定假日
+            </button>
+          </div>
+
+          <div class="mb-3">
+            <h5>公休日</h5>
+            <div id="closed-days-container">
+              <!-- 公休日設定會由JS動態生成 -->
+            </div>
+            <button
+              class="btn btn-sm btn-outline-primary mt-2"
+              id="add-closed-day"
+            >
+              新增公休日
+            </button>
+          </div>
+
+          <div class="mb-3">
+            <h5>調整營業時段</h5>
+            <div id="adjusted-hours-container">
+              <!-- 調整營業時段設定會由JS動態生成 -->
+            </div>
+            <button
+              class="btn btn-sm btn-outline-primary mt-2"
+              id="add-adjusted-hours"
+            >
+              新增調整營業時段
+            </button>
+          </div>
+
+          <button class="btn btn-success mt-3" id="save-special-dates">
+            儲存特殊日期
+          </button>
+        </div>
+
+        <!-- 歷史紀錄分頁 -->
+        <div class="tab-pane fade" id="history-tab">
+          <h3>歷史紀錄</h3>
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>日期</th>
+                  <th>月份</th>
+                  <th>操作人員</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="history-body">
+                <!-- 歷史紀錄會由JS動態生成 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 編輯班表模態框 -->
+    <div class="modal fade" id="editShiftModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">編輯班表</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">日期</label>
+              <input type="text" class="form-control" id="edit-date" readonly />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">班別</label>
+              <select class="form-select" id="edit-shift-type">
+                <option value="day">白天班</option>
+                <option value="night">晚班</option>
+                <option value="short">短班</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">員工</label>
+              <select class="form-select" id="edit-employee">
+                <!-- 員工選項會由JS動態生成 -->
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              取消
+            </button>
+            <button type="button" class="btn btn-primary" id="save-shift">
+              儲存
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="all.js"></script>
+  </body>
+</html>
