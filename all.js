@@ -29,14 +29,22 @@ function loadData() {
   // 員工資料
   if (savedEmployees) {
     employees = JSON.parse(savedEmployees);
+    // 確保所有員工都有 displayName
+    employees.forEach((emp) => {
+      if (!emp.displayName) {
+        emp.displayName = emp.name || emp.id;
+      }
+    });
   } else {
-    // 預設員工資料
+    // 預設員工資料 - 使用代號 + 顯示名稱
+    // 在 loadData() 函數中，修正員工資料
     employees = [
       {
-        id: "A",
-        name: "正職A",
+        id: "L",
+        name: "正職樂",
+        displayName: "樂",
         type: "full-time",
-        fixedDaysOff: [3, 4], // 週三、週四
+        fixedDaysOff: [3, 4],
         unavailableDates: [
           "2025-11-10",
           "2025-11-11",
@@ -44,25 +52,27 @@ function loadData() {
           "2025-11-13",
           "2025-11-14",
         ],
-        preferredShifts: ["day"],
+        preferredShifts: ["day"], // 正職只能白天班
         color: "employee-a",
       },
       {
-        id: "B",
-        name: "兼職B",
+        id: "M",
+        name: "兼職咪",
+        displayName: "咪",
         type: "part-time",
-        fixedDaysOff: [0, 1], // 週日、週一
+        fixedDaysOff: [0, 1],
         unavailableDates: ["2025-11-26"],
-        preferredShifts: ["day"],
+        preferredShifts: ["day"], // 只能上白天班
         color: "employee-b",
       },
       {
-        id: "C",
-        name: "兼職C",
+        id: "Y",
+        name: "兼職誼",
+        displayName: "誼",
         type: "part-time",
         fixedDaysOff: [],
         unavailableDates: ["2025-11-16", "2025-11-17"],
-        preferredShifts: ["night"],
+        preferredShifts: ["night"], // 以晚班為主
         specialDates: {
           "2025-11-13": "night",
           "2025-11-14": "night",
@@ -70,19 +80,21 @@ function loadData() {
         color: "employee-c",
       },
       {
-        id: "D",
-        name: "兼職D",
+        id: "B",
+        name: "兼職畢",
+        displayName: "畢",
         type: "part-time",
         fixedDaysOff: [],
         unavailableDates: [],
-        preferredShifts: ["night"],
+        preferredShifts: ["night"], // 晚班
         availableDates: ["2025-11-08", "2025-11-22", "2025-11-29"],
         color: "employee-d",
-        priority: 1, // 優先排班
+        priority: 1,
       },
       {
-        id: "E",
-        name: "兼職E",
+        id: "C",
+        name: "兼職妘",
+        displayName: "妘",
         type: "part-time",
         fixedDaysOff: [],
         unavailableDates: [
@@ -92,13 +104,14 @@ function loadData() {
           "2025-11-21",
           "2025-11-23",
         ],
-        preferredShifts: ["day", "short"],
+        preferredShifts: ["day", "short"], // 白天班和短班
         color: "employee-e",
-        shortShiftPriority: 1, // 短班優先
+        shortShiftPriority: 1,
       },
       {
-        id: "F",
-        name: "兼職F",
+        id: "S",
+        name: "兼職莎",
+        displayName: "莎",
         type: "part-time",
         fixedDaysOff: [],
         unavailableDates: [
@@ -109,9 +122,9 @@ function loadData() {
           "2025-11-21",
           "2025-11-22",
         ],
-        preferredShifts: ["night"],
+        preferredShifts: ["night", "short"], // 晚班為主，短班第二順位
         color: "employee-f",
-        shortShiftPriority: 2, // 短班第二順位
+        shortShiftPriority: 2,
         minNightShifts: 2,
         maxNightShifts: 2,
       },
@@ -411,7 +424,10 @@ function generateSchedule() {
               dayShift.className = `editable-shift ${daySchedule.day.color}`;
               const shiftTime = getShiftTime("day", adjustedHour, dayOfWeek);
               const shiftHours = getShiftHours("day", adjustedHour, dayOfWeek);
-              dayShift.textContent = `${daySchedule.day.id} ${shiftTime}(${shiftHours})`;
+              // 安全地使用 displayName，如果沒有就使用 id
+              const displayName =
+                daySchedule.day.displayName || daySchedule.day.id;
+              dayShift.textContent = `${displayName} ${shiftTime}(${shiftHours})`;
               dayShift.setAttribute("data-date", dateString);
               dayShift.setAttribute("data-shift-type", "day");
               shiftInfo.appendChild(dayShift);
@@ -437,7 +453,10 @@ function generateSchedule() {
                   adjustedHour,
                   dayOfWeek
                 );
-                nightShift.textContent = `${daySchedule.night.id} ${shiftTime}(${shiftHours})`;
+                // 安全地使用 displayName，如果沒有就使用 id
+                const displayName =
+                  daySchedule.night.displayName || daySchedule.night.id;
+                nightShift.textContent = `${displayName} ${shiftTime}(${shiftHours})`;
                 nightShift.setAttribute("data-date", dateString);
                 nightShift.setAttribute("data-shift-type", "night");
                 shiftInfo.appendChild(nightShift);
@@ -454,7 +473,10 @@ function generateSchedule() {
                 adjustedHour,
                 dayOfWeek
               );
-              shortShift.textContent = `${daySchedule.short.id} ${shiftTime}(${shiftHours})`;
+              // 安全地使用 displayName，如果沒有就使用 id
+              const displayName =
+                daySchedule.short.displayName || daySchedule.short.id;
+              shortShift.textContent = `${displayName} ${shiftTime}(${shiftHours})`;
               shortShift.setAttribute("data-date", dateString);
               shortShift.setAttribute("data-shift-type", "short");
               shiftInfo.appendChild(shortShift);
@@ -630,17 +652,21 @@ function autoGenerateSchedule() {
       scheduleDayShift(dateString, dayOfWeek, isHoliday);
     }
 
+    // 如果是假日，先排短班
+    if (isHoliday) {
+      scheduleShortShift(dateString);
+    }
+
     // 排晚班 (如果不是提早打烊)
     if (!adjustedHour || adjustedHour.type !== "early-close") {
       const nightHours = getShiftHoursNumber("night", adjustedHour, dayOfWeek);
       if (nightHours > 0) {
         scheduleNightShift(dateString, dayOfWeek, isHoliday);
+      } else {
+        console.log("晚班時數為0，不排晚班在:", dateString);
       }
-    }
-
-    // 如果是假日，排短班
-    if (isHoliday) {
-      scheduleShortShift(dateString);
+    } else {
+      console.log("提早打烊，不排晚班在:", dateString);
     }
   }
 
@@ -728,14 +754,14 @@ function scheduleNightShift(dateString, dayOfWeek, isHoliday) {
     return true;
   });
 
-  // 優先排兼職D
-  const employeeD = availableEmployees.find((emp) => emp.id === "D");
+  // 優先排兼職B (畢) - 修正這裡！
+  const employeeB = availableEmployees.find((emp) => emp.id === "B");
   if (
-    employeeD &&
-    employeeD.availableDates &&
-    employeeD.availableDates.includes(dateString)
+    employeeB &&
+    employeeB.availableDates &&
+    employeeB.availableDates.includes(dateString)
   ) {
-    scheduleData[dateString].night = employeeD;
+    scheduleData[dateString].night = employeeB;
     return;
   }
 
@@ -763,17 +789,17 @@ function scheduleShortShift(dateString) {
     return true;
   });
 
-  // 優先排兼職E
-  const employeeE = availableEmployees.find((emp) => emp.id === "E");
-  if (employeeE) {
-    scheduleData[dateString].short = employeeE;
+  // 優先排兼職C (妘)
+  const employeeC = availableEmployees.find((emp) => emp.id === "C");
+  if (employeeC) {
+    scheduleData[dateString].short = employeeC;
     return;
   }
 
-  // 其次排兼職F
-  const employeeF = availableEmployees.find((emp) => emp.id === "F");
-  if (employeeF) {
-    scheduleData[dateString].short = employeeF;
+  // 其次排兼職S (莎)
+  const employeeS = availableEmployees.find((emp) => emp.id === "S");
+  if (employeeS) {
+    scheduleData[dateString].short = employeeS;
     return;
   }
 
@@ -808,17 +834,25 @@ function validateSchedule() {
         employee.type === "full-time" &&
         !employee.preferredShifts.includes("day")
       ) {
-        warnings.push(`${date}：${employee.name} 是正職但被排在非白天班`);
+        warnings.push(
+          `${date}：${
+            employee.displayName || employee.id
+          } 是正職但被排在非白天班`
+        );
       }
 
       // 檢查固定休息日
       if (employee.fixedDaysOff.includes(dayOfWeek)) {
-        warnings.push(`${date}：${employee.name} 固定休息但被排班`);
+        warnings.push(
+          `${date}：${employee.displayName || employee.id} 固定休息但被排班`
+        );
       }
 
       // 檢查不可上班日期
       if (employee.unavailableDates.includes(date)) {
-        warnings.push(`${date}：${employee.name} 不可上班但被排班`);
+        warnings.push(
+          `${date}：${employee.displayName || employee.id} 不可上班但被排班`
+        );
       }
     } else if (!adjustedHour || adjustedHour.type !== "late-open") {
       // 如果沒有排白天班且不是延後開門，則警告
@@ -831,17 +865,25 @@ function validateSchedule() {
 
       // 檢查員工是否可上晚班
       if (!employee.preferredShifts.includes("night")) {
-        warnings.push(`${date}：${employee.name} 不偏好晚班但被排在晚班`);
+        warnings.push(
+          `${date}：${
+            employee.displayName || employee.id
+          } 不偏好晚班但被排在晚班`
+        );
       }
 
       // 檢查固定休息日
       if (employee.fixedDaysOff.includes(dayOfWeek)) {
-        warnings.push(`${date}：${employee.name} 固定休息但被排班`);
+        warnings.push(
+          `${date}：${employee.displayName || employee.id} 固定休息但被排班`
+        );
       }
 
       // 檢查不可上班日期
       if (employee.unavailableDates.includes(date)) {
-        warnings.push(`${date}：${employee.name} 不可上班但被排班`);
+        warnings.push(
+          `${date}：${employee.displayName || employee.id} 不可上班但被排班`
+        );
       }
     } else if (!adjustedHour || adjustedHour.type !== "early-close") {
       // 如果沒有排晚班且不是提早打烊，則警告
@@ -918,7 +960,9 @@ function checkContinuousWork() {
 
     if (consecutiveDays > 5) {
       const employee = employees.find((emp) => emp.id === empId);
-      warnings.push(`${employee.name} 連續工作 ${consecutiveDays} 天`);
+      warnings.push(
+        `${employee.displayName || employee.id} 連續工作 ${consecutiveDays} 天`
+      );
     }
   }
 
@@ -990,6 +1034,7 @@ function updateStats() {
   employees.forEach((emp) => {
     stats[emp.id] = {
       name: emp.name,
+      displayName: emp.displayName || emp.id,
       type: emp.type,
       workDays: 0,
       offDays: 0,
@@ -1091,7 +1136,7 @@ function updateStats() {
     const row = document.createElement("tr");
 
     row.innerHTML = `
-                <td>${empStats.name}</td>
+                <td>${empStats.displayName}</td>
                 <td>${
                   empStats.type === "full-time" ? empStats.workDays : "-"
                 }</td>
@@ -1132,7 +1177,9 @@ function renderEmployeeRules() {
 
     employeeCard.innerHTML = `
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">${employee.name} (${employee.id})</h5>
+                    <h5 class="mb-0">${employee.displayName || employee.id} (${
+      employee.id
+    })</h5>
                     <button type="button" class="btn btn-sm btn-danger delete-employee" data-index="${index}">刪除</button>
                 </div>
                 <div class="card-body">
@@ -1146,8 +1193,8 @@ function renderEmployeeRules() {
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">員工姓名</label>
-                                <input type="text" class="form-control employee-name" value="${
-                                  employee.name
+                                <input type="text" class="form-control employee-display-name" value="${
+                                  employee.displayName || employee.id
                                 }" data-index="${index}">
                             </div>
                             <div class="mb-3">
@@ -1289,7 +1336,13 @@ function renderEmployeeRules() {
   document.querySelectorAll(".delete-employee").forEach((button) => {
     button.addEventListener("click", function () {
       const index = parseInt(this.getAttribute("data-index"));
-      if (confirm(`確定要刪除 ${employees[index].name} 嗎？`)) {
+      if (
+        confirm(
+          `確定要刪除 ${
+            employees[index].displayName || employees[index].id
+          } 嗎？`
+        )
+      ) {
         employees.splice(index, 1);
         renderEmployeeRules();
       }
@@ -1302,6 +1355,7 @@ function addEmployeeForm() {
   const newEmployee = {
     id: "NEW",
     name: "新員工",
+    displayName: "新員工",
     type: "part-time",
     fixedDaysOff: [],
     unavailableDates: [],
@@ -1321,9 +1375,9 @@ function saveEmployeeRules() {
     employees[index].id = input.value;
   });
 
-  document.querySelectorAll(".employee-name").forEach((input) => {
+  document.querySelectorAll(".employee-display-name").forEach((input) => {
     const index = parseInt(input.getAttribute("data-index"));
-    employees[index].name = input.value;
+    employees[index].displayName = input.value;
   });
 
   document.querySelectorAll(".employee-type").forEach((select) => {
@@ -1746,7 +1800,7 @@ function openEditShiftModal(date, shiftType) {
   availableEmployees.forEach((emp) => {
     const option = document.createElement("option");
     option.value = emp.id;
-    option.textContent = `${emp.name} (${emp.id})`;
+    option.textContent = `${emp.displayName || emp.id} (${emp.id})`;
 
     // 如果當前已經排了該員工，則預設選中
     if (
