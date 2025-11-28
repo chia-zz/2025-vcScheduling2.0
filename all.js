@@ -18,6 +18,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // 載入儲存的資料
 function loadData() {
+  // 版本控制 - 如果版本不同就清除舊資料
+  const CURRENT_VERSION = "2.0"; // 每次大更新就改這個版本號
+  const savedVersion = localStorage.getItem("appVersion");
+
+  if (savedVersion !== CURRENT_VERSION) {
+    console.log("偵測到版本更新，清除舊資料...");
+    localStorage.clear();
+    localStorage.setItem("appVersion", CURRENT_VERSION);
+  }
+
   // 從localStorage載入資料，如果沒有則使用預設值
   const savedEmployees = localStorage.getItem("employees");
   const savedHolidays = localStorage.getItem("holidays");
