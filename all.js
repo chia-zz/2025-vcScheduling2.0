@@ -174,6 +174,27 @@ function loadData() {
         shortShift: "13:00-16:00",
         shortHours: 3,
       },
+      // 12月特殊規則
+      {
+        date: "2025-12-25",
+        type: "holiday", // 國定假日
+        description: "聖誕節國定假日",
+      },
+      {
+        date: "2025-12-31",
+        type: "early-close",
+        description: "跨年提早打烊，營業到18:30",
+      },
+    ];
+  }
+
+  // 國定假日設定 - 添加 12/25
+  if (!savedHolidays) {
+    holidays = [
+      {
+        date: "2025-12-25",
+        name: "聖誕節",
+      },
     ];
   }
 
@@ -532,6 +553,19 @@ function generateSchedule() {
 // 獲取班別時間
 function getShiftTime(shiftType, adjustedHour, dayOfWeek) {
   const isHoliday = dayOfWeek === 0 || dayOfWeek === 6;
+  const currentDate = new Date(currentYear, currentMonth, dayOfWeek);
+  const dateString = formatDate(currentDate);
+
+  // 12月假日短班調整為 11:00-16:00
+  if (currentMonth === 11 && shiftType === "short" && isHoliday) {
+    // 11代表12月
+    return "11:00-16:00";
+  }
+
+  // 12/31 提早打烊
+  if (dateString === "2025-12-31" && shiftType === "night") {
+    return "不需排班";
+  }
 
   // 如果有調整營業時段
   if (adjustedHour) {
@@ -582,8 +616,20 @@ function getShiftHours(shiftType, adjustedHour, dayOfWeek) {
 // 獲取班別時數 (數字)
 function getShiftHoursNumber(shiftType, adjustedHour, dayOfWeek) {
   const isHoliday = dayOfWeek === 0 || dayOfWeek === 6;
+  const currentDate = new Date(currentYear, currentMonth, dayOfWeek);
+  const dateString = formatDate(currentDate);
 
   let hours = 0;
+
+  // 12月假日短班調整為 5小時
+  if (currentMonth === 11 && shiftType === "short" && isHoliday) {
+    // 11代表12月
+    hours = 5;
+  }
+  // 12/31 提早打烊，晚班時數為0
+  else if (dateString === "2025-12-31" && shiftType === "night") {
+    hours = 0;
+  }
 
   // 如果有調整營業時段
   if (adjustedHour) {
